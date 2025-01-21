@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
-use Tymon\JWTAuth\Facades\JWTAuth;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Tymon\JWTAuth\Facades\JWTAuth;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Mail;
 
 class AuthController extends Controller
 {
@@ -31,9 +32,34 @@ class AuthController extends Controller
             $validation['password'] = bcrypt($request->password);
             $user = User::create($validation);
 
+            $token2fa = random_int(100000, 999999);
+            $expired = now()->addMinutes(5);
 
-
+            $user->two_fa_expired_at = $expired;
+            $user->two_fa = $token2fa;
+            $user->save();
+            try{
+                Mail::send(
+                    'mails.VerifikasiAccount',
+                    ['token' => $token2fa, 'name' => $user->name],
+                    function ($message) use ($user) {
+                        $message->to($user->email, $user->name)->subject('Verifikasi Account');
+                    }
+                );
+            }catch (\Exception $e)
+            {
+                $user->delete();
+                return response()->json([
+                    'message' => 'Error: ' . $e->getMessage()
+                ], 400);
+            }
             DB::commit();
+            return response()->json([
+                "message" => "Succes",
+                "data" => [
+                    "user" => $user,
+                ]
+            ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -45,36 +71,49 @@ class AuthController extends Controller
 
     public function verifyAccount(Request $request)
     {
-        $request->validate([
-            'token' => 'required',
-            'two_factor_token' => 'required|numeric',
-        ]);
-
         try {
-            // Validasi token JWT
-            $payload = JWTAuth::parseToken()->getPayload();
+            $validation = $request->validate([
+                'email' => 'required',
+                'token' => 'required|numeric'
+            ]);
 
-            // Ambil data dari payload
-            $email = $payload->get('email');
-            $expectedTwoFactorToken = $payload->get('two_factor_token');
+            $user = User::where('email', $validation['email'])->first();
 
-            // Cocokkan kode 2FA
-            if ($expectedTwoFactorToken != $request->two_factor_token) {
-                return response()->json(['message' => 'Invalid 2FA token'], 400);
+            if(!$user)
+            {
+                return response()->json([
+                    'message' => 'User not found'
+                ], 403);
             }
 
-            // Tandai akun sebagai terverifikasi
-            $user = User::where('email', $email)->first();
-            if (!$user) {
-                return response()->json(['message' => 'User not found'], 404);
+            if($validation['token'] != $user->two_fa)
+            {
+                return response()->json([
+                    'message' => 'Token not match'
+                ], 403);
             }
 
+            if($user->two_fa_expired_at < now())
+            {
+                return response()->json([
+                    'message' => 'Token expired'
+                ], 403);
+            }
+
+            $user->two_fa = null;
+            $user->two_fa_expired_at = null;
             $user->email_verified_at = now();
             $user->save();
+            return response()->json([
+                "message" => "Succes",
+                "data" => $user
+            ], 200);
 
-            return response()->json(['message' => 'Account verified successfully'], 200);
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Invalid or expired token'], 400);
+        }catch(\Exception $e)
+        {
+            return response()->json([
+                'message' => 'Error: ' . $e->getMessage()
+            ], 400);
         }
     }
 
