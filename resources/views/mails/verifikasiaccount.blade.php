@@ -6,7 +6,7 @@
     <title>Activity Account</title>
 </head>
 <body>
-    <p>Halo {{ $name }}Terimakasih telah mendaftar di website kami.</p>
+    <p>Halo {{ $name }} Terimakasih telah mendaftar di website kami.</p>
     <p>Untuk melakukan aktivasi akun, silahkan tekan link berikut:</p>
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #6A1B9A; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #BDBDBD; border-radius: 8px; background-color: #FFFFFF;">
             <div style="text-align: center; margin-bottom: 20px;">

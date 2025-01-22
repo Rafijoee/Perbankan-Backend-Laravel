@@ -12,7 +12,12 @@ Route::get('/user', function (Request $request) {
 //authenticate
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-Route::post('/verifyaccount', [AuthController::class, 'verifyAccount']);
+Route::post('/verify-account', [AuthController::class, 'verifyaccount']);
+Route::post('/reset-twofa', [AuthController::class, 'resettwofa']);
+Route::post(('/reset-password'), [AuthController::class, 'resetpassword']);
+Route::post(('forget-password'), [AuthController::class, 'forgetpassword']);
+Route::post('/logout', [AuthController::class, 'logout']);
+
 
 Route::middleware(['jwt'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'index']);
