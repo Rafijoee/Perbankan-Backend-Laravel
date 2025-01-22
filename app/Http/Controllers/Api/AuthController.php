@@ -6,18 +6,13 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
-    }
 
     public function register(Request $request)
     {
@@ -68,6 +63,49 @@ class AuthController extends Controller
         }
     }
 
+    public function login(Request $request)
+    {
+        try {
+
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'password' => 'required|string|min:6',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if ($user->email_verified_at == null) {
+            return response()->json([
+                'message' => 'Email not verified'
+            ], 403);
+        }
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        if (!$token = JWTAuth::attempt($validator->validated())) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+        return $this->respondWithToken($token);
+    }
+    catch (\Exception $e) {
+        Log::info("message: " . $e->getMessage());
+        return response()->json([
+            'message' => 'Error: ' . $e->getMessage()
+        ], 400);
+    }
+    }
+
+    protected function respondWithToken($token)
+    {
+        return response()->json([
+            'access_token' => $token,
+            'token_type' => 'bearer',
+            'expires_in' => auth('api')->factory()->getTTL() * 60,
+            'user' => auth()->user()
+        ]);
+    }
 
     public function verifyAccount(Request $request)
     {
