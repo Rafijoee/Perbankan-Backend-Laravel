@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\DB;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
+use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
@@ -33,7 +35,7 @@ class AuthController extends Controller
             $user->two_fa_expired_at = $expired;
             $user->two_fa = $token2fa;
             $user->save();
-            try{
+            try {
                 Mail::send(
                     'mails.VerifikasiAccount',
                     ['token' => $token2fa, 'name' => $user->name],
@@ -41,8 +43,7 @@ class AuthController extends Controller
                         $message->to($user->email, $user->name)->subject('Verifikasi Account');
                     }
                 );
-            }catch (\Exception $e)
-            {
+            } catch (\Exception $e) {
                 $user->delete();
                 return response()->json([
                     'message' => 'Error: ' . $e->getMessage()
@@ -83,22 +84,19 @@ class AuthController extends Controller
 
             $user = User::where('email', $validation['email'])->first();
 
-            if(!$user)
-            {
+            if (!$user) {
                 return response()->json([
                     'message' => 'User not found'
                 ], 403);
             }
 
-            if($validation['token'] != $user->two_fa)
-            {
+            if ($validation['token'] != $user->two_fa) {
                 return response()->json([
                     'message' => 'Token not match'
                 ], 403);
             }
 
-            if($user->two_fa_expired_at < now())
-            {
+            if ($user->two_fa_expired_at < now()) {
                 return response()->json([
                     'message' => 'Token expired'
                 ], 403);
@@ -112,9 +110,7 @@ class AuthController extends Controller
                 "message" => "Succes",
                 "data" => $user
             ], 200);
-
-        }catch(\Exception $e)
-        {
+        } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error: ' . $e->getMessage()
             ], 400);
@@ -123,12 +119,11 @@ class AuthController extends Controller
 
     public function resettwofa(Request $request)
     {
-        try{
+        try {
             DB::beginTransaction();
             $user = User::where('email', $request->email)->first();
 
-            if(!$user)
-            {
+            if (!$user) {
                 return response()->json([
                     'message' => 'User not found'
                 ], 403);
@@ -140,7 +135,7 @@ class AuthController extends Controller
             $user->two_fa_expired_at = $expired;
             $user->two_fa = $token2fa;
             $user->save();
-            try{
+            try {
                 Mail::send(
                     'mails.ulangverifikasi',
                     ['token' => $token2fa, 'name' => $user->name],
@@ -148,12 +143,11 @@ class AuthController extends Controller
                         $message->to($user->email, $user->name)->subject('Verifikasi Account');
                     }
                 );
-            }catch (\Exception $e)
-            {
+            } catch (\Exception $e) {
                 return response()->json([
                     'message' => 'Error: ' . $e->getMessage()
                 ], 400);
-            }   
+            }
 
             return response()->json([
                 "message" => "Succes",
@@ -161,25 +155,22 @@ class AuthController extends Controller
             ], 200);
 
             DB::commit();
-        }catch (\Exception $e)
-        {
+        } catch (\Exception $e) {
             DB::rollBack();
             log::info("message: " . $e->getMessage());
             return response()->json([
                 'message' => 'Error: ' . $e->getMessage()
             ], 400);
         }
-
     }
 
     public function forgetPassword(Request $request)
     {
-        try{
+        try {
             DB::beginTransaction();
             $user = User::where('email', $request->email)->first();
 
-            if(!$user)
-            {
+            if (!$user) {
                 return response()->json([
                     'message' => 'User not found'
                 ], 403);
@@ -191,7 +182,7 @@ class AuthController extends Controller
             $user->two_fa_expired_at = $expired;
             $user->two_fa = $token2fa;
             $user->save();
-            try{
+            try {
                 Mail::send(
                     'mails.forgetpassword',
                     ['token' => $token2fa, 'name' => $user->name],
@@ -199,23 +190,19 @@ class AuthController extends Controller
                         $message->to($user->email, $user->name)->subject('Reset Password');
                     }
                 );
-            }catch (\Exception $e)
-            {
+            } catch (\Exception $e) {
                 log::info("message: " . $e->getMessage());
                 return response()->json([
                     'message' => 'Error: ' . $e->getMessage()
                 ], 400);
-            }   
+            }
 
             DB::commit();
             return response()->json([
                 "message" => "Succes",
                 "data" => $user
             ], 200);
-
-        }
-        catch (\Exception $e)
-        {
+        } catch (\Exception $e) {
             DB::rollBack();
             log::info("message: " . $e->getMessage());
             return response()->json([
@@ -236,22 +223,19 @@ class AuthController extends Controller
 
             $user = User::where('email', $validation['email'])->first();
 
-            if(!$user)
-            {
+            if (!$user) {
                 return response()->json([
                     'message' => 'User not found'
                 ], 403);
             }
 
-            if($validation['token'] != $user->two_fa)
-            {
+            if ($validation['token'] != $user->two_fa) {
                 return response()->json([
                     'message' => 'Token not match'
                 ], 403);
             }
 
-            if($user->two_fa_expired_at < now())
-            {
+            if ($user->two_fa_expired_at < now()) {
                 return response()->json([
                     'message' => 'Token expired'
                 ], 403);
@@ -265,9 +249,7 @@ class AuthController extends Controller
                 "message" => "Succes",
                 "data" => $user
             ], 200);
-
-        }catch(\Exception $e)
-        {
+        } catch (\Exception $e) {
             log::info("message: " . $e->getMessage());
             return response()->json([
                 'message' => 'Error: ' . $e->getMessage()
@@ -279,81 +261,63 @@ class AuthController extends Controller
     {
         try {
 
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'password' => 'required|string|min:6',
-        ]);
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|email',
+                'password' => 'required|string|min:6',
+            ]);
 
-        $user = User::where('email', $request->email)->first();
+            $user = User::where('email', $request->email)->first();
 
-        if ($user->email_verified_at == null) {
+            if ($user->email_verified_at == null) {
+                return response()->json([
+                    'message' => 'Email not verified'
+                ], 403);
+            }
+
+            if ($validator->fails()) {
+                return response()->json($validator->errors(), 422);
+            }
+
+            if (!$token = JWTAuth::attempt($validator->validated())) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+            return $this->respondWithToken($token);
+        } catch (\Exception $e) {
+            Log::info("message: " . $e->getMessage());
             return response()->json([
-                'message' => 'Email not verified'
-            ], 403);
+                'message' => 'Error: ' . $e->getMessage()
+            ], 400);
         }
+    }
 
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+    public function redirectToGoogle()
+    {
+        return Socialite::driver('google')->redirect();
+    }
+
+    public function handleGoogleCallback()
+    {
+        try {
+            $user = Socialite::driver('google')->user();
+
+            $finduser = User::where('google_id', $user->id)->first();
+
+            if ($finduser) {
+                $token = JWTAuth::fromUser($finduser);
+                return $this->respondWithToken($token);
+            } else {
+                $newUser = User::create([
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'google_id' => $user->id,
+                    'email_verified_at' => now(),
+                    'password' => encrypt('123456dummy')
+                ]);
+                $token = JWTAuth::fromUser($newUser);
+                return $this->respondWithToken($token);
+            }
+        } catch (\Exception $e) {
+            return redirect('auth/google');
         }
-
-        if (!$token = JWTAuth::attempt($validator->validated())) {
-            return response()->json(['error' => 'Unauthorized'], 401);
-        }
-        return $this->respondWithToken($token);
-    }
-    catch (\Exception $e) {
-        Log::info("message: " . $e->getMessage());
-        return response()->json([
-            'message' => 'Error: ' . $e->getMessage()
-        ], 400);
-    }
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
     }
 }
