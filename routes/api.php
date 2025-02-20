@@ -19,9 +19,15 @@ Route::post(('forget-password'), [AuthController::class, 'forgetpassword']);
 Route::post('/logout', [AuthController::class, 'logout']);
 
 
-Route::middleware(['jwt'])->group(function () {
-    Route::get('/profile', [ProfileController::class, 'index']);
-    Route::get('/dashboard', function () {
-        return response()->json(['message' => 'Welcome to the dashboard']);
-    });
-});
+Route::get('/profile', [ProfileController::class, 'index']);
+Route::post('/profile', [ProfileController::class, 'store']);
+Route::post('/tes-profile', [ProfileController::class, 'search']);
+
+
+// Route::middleware(['jwt'])->group(function () {
+//     Route::get('/profile', [ProfileController::class, 'index']);
+//     Route::post('/profile', [ProfileController::class, 'store']);
+//     Route::get('/dashboard', function () {
+//         return response()->json(['message' => 'Welcome to the dashboard']);
+//     });
+// });
