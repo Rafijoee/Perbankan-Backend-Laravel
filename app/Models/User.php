@@ -57,9 +57,9 @@ class User extends Authenticatable implements JWTSubject
     {
         return [];
     }
-    public function scopeSearch(Builder $query, $search)
+    public function scopeSearch(Builder $query, $name)
     {
-        return $query->where('name', 'LIKE', '%' . $search . '%');
+        return $query->where('name', 'LIKE', '%' . $name . '%');
     }
 
     // Scope untuk filtering berdasarkan role

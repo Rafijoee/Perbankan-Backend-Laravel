@@ -13,12 +13,11 @@ class ProfileController extends Controller
      * Display a listing of the resource.
      */
     public function index(Request $request)
-    {
-        $query = User::where('status', 'verified'); // Hanya ambil user yang statusnya "verified"
+    {        
+        $query = User::where('email_verified_at', '!=', null);
     
-        // Searching berdasarkan nama (opsional)
-        if ($request->filled('search')) {
-            $query->where('name', 'LIKE', '%' . $request->search . '%');
+        if ($request->filled('name')) {
+            $query->where('name', 'LIKE', '%' . $request->name . '%');
         }
     
         // Filtering berdasarkan role (opsional)
@@ -50,13 +49,13 @@ class ProfileController extends Controller
                 // 'active_letter' => 'required|mimes:pdf|max:2048',
             ]);
 
-            $roles = auth()->user()->roles;
+            $roles = auth()->user->roles;
 
             // Log::info('All Request Data:', $request->all()); 
             // Log::info('All Files:', $request->allFiles()); 
             if ($request->hasFile('profile_image')) {
                 $profileImage = $request->file('profile_image');
-                $profileImageName = 'profile_' . auth()->id() . '_' . time() . '.' . $profileImage->getClientOriginalExtension();
+                $profileImageName = 'profile_' . '_' . time() . '.' . $profileImage->getClientOriginalExtension();
                 $profileImagePath = $profileImage->storeAs('profile_images' . $roles, $profileImageName, 'public');
             }                        
 
