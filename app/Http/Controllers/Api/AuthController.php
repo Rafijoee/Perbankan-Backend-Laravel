@@ -9,6 +9,7 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Facades\Validator;
@@ -267,6 +268,12 @@ class AuthController extends Controller
             ]);
 
             $user = User::where('email', $request->email)->first();
+            if (!$user->email_verified_at) {
+                return response()->json(['error' => 'Email not verified'], 403);
+            }
+
+            // $user = DB::table('users')->where('email', 'rafijoe45@gmail.com')->first();
+            // dd(Hash::check('123456dummy', $user->password)); // Harus return true
 
             if ($user->email_verified_at == null) {
                 return response()->json([
@@ -278,8 +285,15 @@ class AuthController extends Controller
                 return response()->json($validator->errors(), 422);
             }
 
+            // dd($validator->validated());
+            // dd(JWTAuth::attempt($validator->validated()));
+
             if (!$token = JWTAuth::attempt($validator->validated())) {
-                return response()->json(['error' => 'Unauthorized'], 401);
+                return response()->json([
+                    'error' => 'Unauthorized',
+                    'message' => 'Email or password is incorrect'
+                ], 
+                    401);
             }
             return $this->respondWithToken($token);
         } catch (\Exception $e) {
@@ -311,7 +325,7 @@ class AuthController extends Controller
                     'email' => $user->email,
                     'google_id' => $user->id,
                     'email_verified_at' => now(),
-                    'password' => encrypt('123456dummy')
+                    'password' => Hash::make('123456dummy')
                 ]);
                 $token = JWTAuth::fromUser($newUser);
                 return $this->respondWithToken($token);
