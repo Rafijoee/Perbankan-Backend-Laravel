@@ -12,36 +12,32 @@ class ProfileController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        try {
-            // $user = auth()->user();
-            // log::info("ini usernyaaaaa", ["user" => $user]);
-            return response()->json([
-                'message' => 'Welcome to the profile page',
-                // 'data' => $user
-            ], 200);
-        } catch (\Exception $e) {
-            Log::info("message", ["error" => $e->getMessage()]);
-            return response()->json([
-                'message' => 'Error: ' . $e->getMessage()
-            ], 400);
+        $query = User::where('status', 'verified'); // Hanya ambil user yang statusnya "verified"
+    
+        // Searching berdasarkan nama (opsional)
+        if ($request->filled('search')) {
+            $query->where('name', 'LIKE', '%' . $request->search . '%');
         }
+    
+        // Filtering berdasarkan role (opsional)
+        if ($request->filled('role')) {
+            $query->where('role', $request->role);
+        }
+    
+        // Ambil data dengan pagination
+        $users = $query->paginate(10);
+    
+        return response()->json($users);
     }
+    
 
     /**
      * Show the form for creating a new resource.
      */
     public function create() {}
 
-    public function search (Request $request) {
-        $users = User::query()
-        ->when($request->search, fn($q) => $q->search($request->email))
-        ->when($request->role, fn($q) => $q->role($request->name))
-        ->paginate(10);
-
-    return response()->json($users);
-    }
 
     /**
      * Store a newly created resource in storage.
