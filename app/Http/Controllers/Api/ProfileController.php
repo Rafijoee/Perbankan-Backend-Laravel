@@ -75,7 +75,9 @@ class ProfileController extends Controller
      */
     public function show(string $id)
     {
-        dd($id);
+        $profile = User::find($id);
+        return response()->json($profile);
+
     }
 
     /**
@@ -91,7 +93,10 @@ class ProfileController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $profile = User::find($id);
+        $profile->update($request->all());
+        return response()->json($profile);
+
     }
 
     /**
