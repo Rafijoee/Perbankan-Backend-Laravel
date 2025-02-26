@@ -61,7 +61,7 @@ class ProfileController extends Controller
 
             return response()->json([
                 'message' => 'File uploaded successfully',
-                'data' => $request
+                'data' => $data
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
